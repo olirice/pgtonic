@@ -19,7 +19,7 @@ TOKEN_MAP = {
 }
 
 
-def lex(text: str) -> Part:
+def lex(text: str) -> List[Part]:
     """Parse input text according to the mapping of token to callable"""
     token_stream: List[Part] = []
     remaining_text = text

@@ -2,14 +2,32 @@ from dataclasses import dataclass
 from typing import List
 
 
+class ToRegexMixin:
+    def to_regex(self) -> str:
+        raise NotImplementedError()
+
+
 @dataclass
-class Base:
+class Base(ToRegexMixin):
     pass
 
 
 @dataclass
-class Statement:
+class Statement(ToRegexMixin):
+
     ast: List[Base]
+
+    def to_regex(self) -> str:
+        OPTIONAL_WHITESPACE = "(\s*)"
+        SEMICOLON = ";?"
+
+        return (
+            OPTIONAL_WHITESPACE.join([x.to_regex() for x in self.ast])
+            + OPTIONAL_WHITESPACE
+            + SEMICOLON
+            + OPTIONAL_WHITESPACE
+            + "$"
+        )
 
 
 ##############
@@ -18,28 +36,34 @@ class Statement:
 
 
 @dataclass
-class Leaf:
+class Leaf(Base):
     content: str
+
+    def to_regex(self) -> str:
+        # Is abstract, should never be in AST
+        raise NotImplementedError()
 
 
 @dataclass
 class Literal(Leaf):
-    pass
+    def to_regex(self) -> str:
+        return str(self.content)
 
 
 @dataclass
 class Argument(Leaf):
     """User input"""
 
-
-@dataclass
-class Repeat(Leaf):
-    """Comma separated"""
+    def to_regex(self) -> str:
+        # TODO Ensure matching quotes
+        return '("?\w+"?\.?"?\w+"?)'
 
 
 @dataclass
 class Pipe(Leaf):
-    pass
+    def to_regex(self) -> str:
+        # Should never be in AST
+        raise NotImplementedError()
 
 
 ###################
@@ -51,17 +75,41 @@ class Pipe(Leaf):
 class Group(Base):
     members: List[Base]
 
+    def to_regex(self) -> str:
+        return "(\s+)".join([x.to_regex() for x in self.members])
+
 
 @dataclass
 class Choice(Group):
-    pass
+    def to_regex(self) -> str:
+        return "(" + "|".join([x.to_regex() for x in self.members]) + ")"
 
 
 @dataclass
 class InParens(Group):
-    pass
+    def to_regex(self) -> str:
+        return "\(" + "(\s+)".join([x.to_regex() for x in self.members]) + "\)"
+
+
+##################
+# Modifier Nodes #
+##################
 
 
 @dataclass
-class Maybe(Group):
-    pass
+class Modifier(Base):
+    wraps: Base
+
+
+@dataclass
+class Repeat(Modifier):
+    """Comma separated"""
+
+    def to_regex(self) -> str:
+        return "(" + str(self.wraps.to_regex()) + ")\s*(\s*,\s*" + str(self.wraps.to_regex()) + "+)*"
+
+
+@dataclass
+class Maybe(Modifier):
+    def to_regex(self) -> str:
+        return "(" + self.wraps.to_regex() + ")" + "?"

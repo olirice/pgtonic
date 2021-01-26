@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Union
 
 from flupy import flu
 
@@ -7,6 +7,7 @@ from pgtonic.spec.lex.types import Part, Token
 from pgtonic.spec.parse.stream_passes import filter_whitespace
 from pgtonic.spec.parse.types import (
     Argument,
+    Base,
     Choice,
     Group,
     InParens,
@@ -18,23 +19,22 @@ from pgtonic.spec.parse.types import (
 )
 
 
-def parse(text: str):
+def parse(text: str) -> Statement:
     """Parse a statement into an Statement AST"""
     stream = lex(text)
     stream = filter_whitespace(stream)
-    return Statement(_parse(stream))
+    return Statement(_parse(stream))  # type: ignore
 
 
-def _parse(stream: List[Part]):
-    out = []
+def _parse(stream: List[Part]) -> Union[List, Base]:  # type: ignore
+    out: List = []  # type: ignore
 
     stream_once = flu(stream)
 
     for p in stream_once:
 
         if p.token == Token.R_BRACKET:
-            if len(out) > 1:
-                return Maybe(out)
+            assert len(out) == 1
             return Maybe(out[0])
 
         elif p.token == Token.R_PAREN:

@@ -15,10 +15,10 @@ class Token(str, Enum):
     R_BRACE = "R_BRACE"
     PIPE = "PIPE"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str.__str__(self)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return str.__str__(self)
 
 
