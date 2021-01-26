@@ -1,5 +1,7 @@
-from flupy import flu
 from typing import List
+
+from flupy import flu
+
 from pgtonic.spec.lex.types import Part, Token
 
 

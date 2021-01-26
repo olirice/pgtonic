@@ -1,2 +1,2 @@
-__project__ = 'pgtonic'
-__version__ = '0.0.1'
+__project__ = "pgtonic"
+__version__ = "0.0.1"

@@ -1,5 +1,5 @@
+from typing import Callable, List, Tuple
 
-from typing import Tuple, List, Dict, Callable
 
 def build_consumer(charset: List[str]) -> Callable[[str], Tuple[str, str]]:
     """Return a callable that consume anything in *charset*
@@ -23,5 +23,3 @@ def build_consumer(charset: List[str]) -> Callable[[str], Tuple[str, str]]:
         return token, text[len(token) :]
 
     return consumer
-
-

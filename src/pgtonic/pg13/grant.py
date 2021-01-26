@@ -7,5 +7,3 @@ TEMPLATES = [
     TO role_specification [, ...] [ WITH GRANT OPTION ]
         """,
 ]
-
-

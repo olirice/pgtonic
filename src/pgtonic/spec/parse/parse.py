@@ -1,20 +1,21 @@
 from typing import List
+
+from flupy import flu
+
+from pgtonic.spec.lex.lex import lex
+from pgtonic.spec.lex.types import Part, Token
+from pgtonic.spec.parse.stream_passes import filter_whitespace
 from pgtonic.spec.parse.types import (
+    Argument,
+    Choice,
+    Group,
+    InParens,
     Literal,
     Maybe,
-    Argument,
-    Repeat,
-    Group,
-    Choice,
-    Base,
     Pipe,
+    Repeat,
     Statement,
-    InParens,
 )
-from pgtonic.spec.lex.types import Token, Part
-from pgtonic.spec.lex.lex import lex
-from pgtonic.spec.parse.stream_passes import filter_whitespace
-from flupy import flu
 
 
 def parse(text: str):
@@ -32,12 +33,12 @@ def _parse(stream: List[Part]):
     for p in stream_once:
 
         if p.token == Token.R_BRACKET:
-            if len(out)>1:
+            if len(out) > 1:
                 return Maybe(out)
             return Maybe(out[0])
 
         elif p.token == Token.R_PAREN:
-            if len(out)>1:
+            if len(out) > 1:
                 return InParens(out)
             return InParens(out[0])
 
@@ -48,7 +49,7 @@ def _parse(stream: List[Part]):
                 .group_by(lambda x: isinstance(x, Pipe), sort=False)
                 .filter(lambda x: not x[0])
                 .map(lambda x: x[1].collect())
-                .map(lambda x: Group(x) if len(x)>1 else x[0])
+                .map(lambda x: Group(x) if len(x) > 1 else x[0])
                 .collect()
             )
             return Choice(g)

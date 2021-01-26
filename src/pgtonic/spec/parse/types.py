@@ -1,5 +1,5 @@
-from typing import List
 from dataclasses import dataclass
+from typing import List
 
 
 @dataclass
@@ -10,6 +10,7 @@ class Base:
 @dataclass
 class Statement:
     ast: List[Base]
+
 
 ##############
 # Leaf Nodes #
@@ -29,18 +30,16 @@ class Literal(Leaf):
 @dataclass
 class Argument(Leaf):
     """User input"""
-    pass
 
 
 @dataclass
 class Repeat(Leaf):
     """Comma separated"""
-    pass
+
 
 @dataclass
 class Pipe(Leaf):
     pass
-
 
 
 ###################
@@ -52,13 +51,16 @@ class Pipe(Leaf):
 class Group(Base):
     members: List[Base]
 
+
 @dataclass
 class Choice(Group):
     pass
 
+
 @dataclass
 class InParens(Group):
     pass
+
 
 @dataclass
 class Maybe(Group):

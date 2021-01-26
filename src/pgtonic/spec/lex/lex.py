@@ -1,8 +1,8 @@
-from typing import Tuple, List, Dict, Callable
-from pgtonic.spec.lex.types import Token, Part
-from pgtonic.exceptions import LexFailureException
-from pgtonic.spec.lex.utils import build_consumer
+from typing import List
 
+from pgtonic.exceptions import LexFailureException
+from pgtonic.spec.lex.types import Part, Token
+from pgtonic.spec.lex.utils import build_consumer
 
 TOKEN_MAP = {
     Token.REPEATING: build_consumer(["[, ...]"]),
