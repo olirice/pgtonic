@@ -50,7 +50,6 @@ DEV_REQUIRES = [
     "pre-commit",
     "pylint",
     "black",
-    "mypy",
     "mkdocs",
 ]
 
