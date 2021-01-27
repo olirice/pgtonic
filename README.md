@@ -19,7 +19,7 @@
 </p>
 <p>
     <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.6+-blue.svg" alt="Python version" height="18"></a>
-    <a href=""><img src="https://img.shields.io/badge/postgresql-11+-blue.svg" alt="PostgreSQL version" height="18"></a>
+    <a href=""><img src="https://img.shields.io/badge/postgresql-9+-blue.svg" alt="PostgreSQL version" height="18"></a>
 </p>
 
 ----
