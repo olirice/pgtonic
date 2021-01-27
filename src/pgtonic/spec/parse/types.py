@@ -15,7 +15,16 @@ class Base(ToRegexMixin):
 
 
 @dataclass
-class Statement(ToRegexMixin):
+class Spec(ToRegexMixin):
+    """Represents a postgres specification template
+
+    e.g.
+
+        CREATE [ OR REPLACE ] [ TEMP | TEMPORARY ] VIEW name [ ( column_name [, ...] ) ]
+        [ WITH ( view_option_name [= view_option_value] [, ... ] ) ]
+        AS query
+
+    """
 
     ast: List[Base]
 

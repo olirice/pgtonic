@@ -15,15 +15,15 @@ from pgtonic.spec.parse.types import (
     Maybe,
     Pipe,
     Repeat,
-    Statement,
+    Spec,
 )
 
 
-def parse(text: str) -> Statement:
+def parse(text: str) -> Spec:
     """Parse a statement into an Statement AST"""
     stream = lex(text)
     stream = filter_whitespace(stream)
-    return Statement(_parse(stream))  # type: ignore
+    return Spec(_parse(stream))  # type: ignore
 
 
 def _parse(stream: Iterable[Part]) -> Union[List, Base]:  # type: ignore
