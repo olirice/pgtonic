@@ -29,13 +29,12 @@ class Spec(ToRegexMixin):
     ast: List[Base]
 
     def to_regex(self) -> str:
-
         return (
-            r.OPTIONAL_WHITESPACE.join([x.to_regex() for x in self.ast])
+            join_w_whitespace(self.ast)
             + r.OPTIONAL_WHITESPACE
             + r.OPTIONAL_SEMICOLON
             + r.OPTIONAL_WHITESPACE
-            + "$"
+            + r.END_OF_LINE
         )
 
 
@@ -64,8 +63,33 @@ class Argument(Leaf):
     """User input"""
 
     def to_regex(self) -> str:
-        # TODO Ensure matching quotes
-        return r.NAME
+        if self.content in ("table_name", "function_name", "sequence_name"):
+            return r.NAME
+        elif self.content in ("schema_name", "table_namespace", "tablespace_name"):
+            return r.SCHEMA_NAME
+        elif self.content in (
+            "column",
+            "role_name",
+            "database_name",
+            "fdw_name",
+            "server_name",
+            "arg_name",
+            "lang_name",
+        ):
+            return r.ENTITY_NAME
+        elif self.content == "arg_type":
+            return ".+"
+        elif self.content == "argmode":
+            # https://www.postgresql.org/docs/13/sql-createfunction.html
+            return "IN|OUT|INOUT"
+        elif self.content == "loid":
+            # large object id
+            return r"\d+"
+        elif self.content == "role_specification":
+            # https://www.postgresql.org/docs/13/sql-grant.html
+            return f"PUBLIC|CURRENT_USER|SESSION_USER|(GROUP{r.OPTIONAL_WHITESPACE})?{r.ENTITY_NAME}"
+        else:
+            raise Exception(f"unknown arg name {self.content}")
 
 
 @dataclass
@@ -85,7 +109,7 @@ class Group(Base):
     members: List[Base]
 
     def to_regex(self) -> str:
-        return "(\s+)".join([x.to_regex() for x in self.members])
+        return join_w_whitespace(self.members)
 
 
 @dataclass
@@ -97,7 +121,7 @@ class Choice(Group):
 @dataclass
 class InParens(Group):
     def to_regex(self) -> str:
-        return "\(" + "(\s+)".join([x.to_regex() for x in self.members]) + "\)"
+        return r"\(\s*" + r"\s+".join([x.to_regex() for x in self.members]) + r"\s*\)"
 
 
 ##################
@@ -115,10 +139,20 @@ class Repeat(Modifier):
     """Comma separated"""
 
     def to_regex(self) -> str:
-        return "(" + str(self.wraps.to_regex()) + ")\s*(\s*,\s*" + str(self.wraps.to_regex()) + "+)*"
+        return "(" + str(self.wraps.to_regex()) + r")\s*(\s*,\s*(" + str(self.wraps.to_regex()) + ")+)*"
 
 
 @dataclass
 class Maybe(Modifier):
     def to_regex(self) -> str:
-        return "(" + self.wraps.to_regex() + ")" + "?"
+        return "(" + self.wraps.to_regex() + r"\s*)" + "?"
+
+
+def join_w_whitespace(nodes: List[Base]) -> str:
+    output = []
+
+    for ix, node in enumerate(nodes):
+        output.append(node.to_regex())
+        if not isinstance(node, Maybe) and not ix + 1 == len(nodes):
+            output.append(r.WHITESPACE)
+    return "".join(output)

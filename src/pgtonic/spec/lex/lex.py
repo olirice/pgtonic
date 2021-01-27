@@ -6,9 +6,11 @@ from pgtonic.spec.lex.utils import build_consumer
 
 TOKEN_MAP = {
     # TODO: Do these variants mean different things?
-    Token.REPEATING: build_consumer(["[, ...]", "[,...]"]),
+    Token.REPEATING_OPTIONAL: build_consumer(["[, ...]"]),
+    Token.REPEATING_REQUIRED: build_consumer(["[,...]"]),
     Token.WHITESPACE: build_consumer([" ", "\n", "\t"]),
     Token.LITERAL: build_consumer(list("ABCDEFGHIJKLMNOPQRSTUVWXYZ")),
+    Token.STAR: build_consumer(list("*")),
     Token.ARG: build_consumer(list("_abcdefghijklmnopqrstuvwxyz")),
     Token.L_PAREN: build_consumer(["("]),
     Token.R_PAREN: build_consumer([")"]),
@@ -31,7 +33,6 @@ def lex(text: str) -> List[Part]:
             if parsed != "":
                 remaining_text = remaining
                 instance = Part(token, parsed.strip())
-                print(instance)
                 token_stream.append(instance)
                 break
         else:

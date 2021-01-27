@@ -1,4 +1,4 @@
-from typing import Iterable, List, Union
+from typing import Any, Iterable, List, NoReturn, Union
 
 from flupy import flu
 
@@ -17,6 +17,13 @@ from pgtonic.spec.parse.types import (
     Repeat,
     Spec,
 )
+
+
+def assert_never(x: Any) -> NoReturn:
+    """Enable mypy to detect unhandle Enum case in a if/elif/else
+    https://github.com/python/mypy/issues/6366
+    """
+    assert False, "Unhandled type: {}".format(type(x).__name__)
 
 
 def parse(text: str) -> Spec:
@@ -59,13 +66,19 @@ def _parse(stream: Iterable[Part]) -> Union[List, Base]:  # type: ignore
         elif p.token == Token.ARG:
             out.append(Argument(p.text))
 
-        elif p.token == Token.REPEATING:
+        elif p.token == Token.REPEATING_REQUIRED:
             out[-1] = Repeat(out[-1])
 
-        elif p.token == Token.LITERAL:
+        elif p.token == Token.REPEATING_OPTIONAL:
+            out[-1] = Maybe(Repeat(out[-1]))
+
+        elif p.token in (Token.LITERAL, Token.STAR):
             out.append(Literal(p.text))
 
         elif p.token == Token.PIPE:
             out.append(Pipe(p.text))
+
+        else:
+            assert_never(p.token)
 
     return out

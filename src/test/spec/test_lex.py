@@ -8,7 +8,7 @@ from pgtonic.spec.lex.types import Token
 
 @pytest.mark.parametrize("template", TEMPLATES)
 def test_lex_grant(template) -> None:
-    assert lex(template)
+    assert lex(template.spec)
 
 
 def test_lex_fails() -> None:
