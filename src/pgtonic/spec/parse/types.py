@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import List
 
+from pgtonic.spec import regex as r
+
 
 class ToRegexMixin:
     def to_regex(self) -> str:
@@ -18,14 +20,12 @@ class Statement(ToRegexMixin):
     ast: List[Base]
 
     def to_regex(self) -> str:
-        OPTIONAL_WHITESPACE = "(\s*)"
-        SEMICOLON = ";?"
 
         return (
-            OPTIONAL_WHITESPACE.join([x.to_regex() for x in self.ast])
-            + OPTIONAL_WHITESPACE
-            + SEMICOLON
-            + OPTIONAL_WHITESPACE
+            r.OPTIONAL_WHITESPACE.join([x.to_regex() for x in self.ast])
+            + r.OPTIONAL_WHITESPACE
+            + r.OPTIONAL_SEMICOLON
+            + r.OPTIONAL_WHITESPACE
             + "$"
         )
 
@@ -56,7 +56,7 @@ class Argument(Leaf):
 
     def to_regex(self) -> str:
         # TODO Ensure matching quotes
-        return '("?\w+"?\.?"?\w+"?)'
+        return r.NAME
 
 
 @dataclass

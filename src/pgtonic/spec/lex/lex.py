@@ -7,7 +7,7 @@ from pgtonic.spec.lex.utils import build_consumer
 TOKEN_MAP = {
     Token.REPEATING: build_consumer(["[, ...]"]),
     Token.WHITESPACE: build_consumer([" ", "\n", "\t"]),
-    Token.LITERAL: build_consumer(list(" ABCDEFGHIJKLMNOPQRSTUVWZYZ")),
+    Token.LITERAL: build_consumer(list("ABCDEFGHIJKLMNOPQRSTUVWZYZ")),
     Token.ARG: build_consumer(list("_abcdefghijklmnopqrstuvwxyz")),
     Token.L_PAREN: build_consumer(["("]),
     Token.R_PAREN: build_consumer([")"]),

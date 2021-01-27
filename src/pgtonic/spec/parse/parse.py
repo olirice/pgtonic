@@ -1,4 +1,4 @@
-from typing import List, Union
+from typing import Iterable, List, Union
 
 from flupy import flu
 
@@ -26,7 +26,7 @@ def parse(text: str) -> Statement:
     return Statement(_parse(stream))  # type: ignore
 
 
-def _parse(stream: List[Part]) -> Union[List, Base]:  # type: ignore
+def _parse(stream: Iterable[Part]) -> Union[List, Base]:  # type: ignore
     out: List = []  # type: ignore
 
     stream_once = flu(stream)
@@ -34,7 +34,8 @@ def _parse(stream: List[Part]) -> Union[List, Base]:  # type: ignore
     for p in stream_once:
 
         if p.token == Token.R_BRACKET:
-            assert len(out) == 1
+            if len(out) > 1:
+                return Maybe(Group(out))
             return Maybe(out[0])
 
         elif p.token == Token.R_PAREN:
