@@ -13,8 +13,9 @@ REGEXES: List[str] = [parse(x).to_regex() for x in TEMPLATES]
     "sql,is_match",
     [
         ("GRANT UPDATE ON TABLE public.account TO oliver;", True),
-        ("GRANT UPDATE ON TABLE public.account TO oliver WITH GRANT OPTION", True),
+        ("GRANT UPDATE ON public.account TO oliver WITH GRANT OPTION", True),
         ("GRANT UPDATE ON TABLE public.account TO oliver WITH", False),
+        ("GRANT UPDATE (full_name) ON account TO GROUP oliver_u", True),
     ],
 )
 def test_pg13_grant(sql: str, is_match: bool) -> None:
