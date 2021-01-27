@@ -51,6 +51,7 @@ DEV_REQUIRES = [
     "pylint",
     "black",
     "mypy",
+    "mkdocs",
 ]
 
 
