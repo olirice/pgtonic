@@ -39,9 +39,7 @@ def _parse(stream: Iterable[Part]) -> Union[List, Base]:  # type: ignore
             return Maybe(out[0])
 
         elif p.token == Token.R_PAREN:
-            if len(out) > 1:
-                return InParens(out)
-            return InParens(out[0])
+            return InParens(out)
 
         elif p.token == Token.R_BRACE:
             # Handle pipes
