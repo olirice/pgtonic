@@ -2,7 +2,7 @@
 
 <p>
     <a href="https://github.com/olirice/pgtonic/actions">
-        <img src="https://github.com/olirice/pgtonic/workflows/Tests/badge.svg" alt="Test Status" height="18">
+        <img src="https://github.com/olirice/pgtonic/workflows/tests/badge.svg" alt="Test Status" height="18">
     </a>
     <a href="https://github.com/olirice/pgtonic/actions">
         <img src="https://github.com/olirice/pgtonic/workflows/pre-commit%20hooks/badge.svg" alt="Pre-commit Status" height="18">
