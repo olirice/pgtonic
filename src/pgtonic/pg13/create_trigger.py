@@ -14,17 +14,6 @@ CREATE [ CONSTRAINT ] TRIGGER name { BEFORE | AFTER | INSTEAD OF } { event [ OR 
     [ WHEN ( condition ) ]
     EXECUTE { FUNCTION | PROCEDURE } function_name ( arguments )
     """,
-    # TODO remove requirement that option groups are surrounded by { }, allow [ ] as well.
-        corrected="""
-CREATE [ CONSTRAINT ] TRIGGER name { BEFORE | AFTER | INSTEAD OF } { event [ OR ... ] }
-    ON table_name
-    [ FROM referenced_table_name ]
-    [ { NOT DEFERRABLE | [ DEFERRABLE ] [ { INITIALLY IMMEDIATE | INITIALLY DEFERRED } ] } ]
-    [ REFERENCING { { OLD | NEW } TABLE [ AS ] transition_relation_name } [ ... ] ]
-    [ FOR [ EACH ] { ROW | STATEMENT } ]
-    [ WHEN ( condition ) ]
-    EXECUTE { FUNCTION | PROCEDURE } function_name ( arguments )
-    """,
         where={
             "name": Template("{ UNQUALIFIED_NAME }"),
             "event": Template(

@@ -21,6 +21,20 @@ from pgtonic.spec.parse.types import (
 )
 
 
+def handle_pipes(x):
+    grouped = (
+        flu(x)
+        .group_by(lambda x: isinstance(x, Pipe), sort=False)
+        .filter(lambda x: not x[0])
+        .map(lambda x: x[1].collect())
+        .map(lambda x: Group(x) if len(x) > 1 else x[0])
+        .collect()
+    )
+    if len(grouped) == 1:
+        return grouped[0]
+    return Choice(grouped)
+
+
 def _parse(stream: Iterable[Part]) -> Union[List, Base]:  # type: ignore
     out: List = []  # type: ignore
 
@@ -30,6 +44,9 @@ def _parse(stream: Iterable[Part]) -> Union[List, Base]:  # type: ignore
 
         if p.token == Token.R_BRACKET:
             if len(out) > 1:
+                maybe_choice = handle_pipes(out)
+                if isinstance(maybe_choice, Choice):
+                    return Maybe(maybe_choice)
                 return Maybe(Group(out))
             return Maybe(out[0])
 
@@ -37,16 +54,8 @@ def _parse(stream: Iterable[Part]) -> Union[List, Base]:  # type: ignore
             return InParens(out)
 
         elif p.token == Token.R_BRACE:
-            # Handle pipes
-            g = (
-                flu(out)
-                .group_by(lambda x: isinstance(x, Pipe), sort=False)
-                .filter(lambda x: not x[0])
-                .map(lambda x: x[1].collect())
-                .map(lambda x: Group(x) if len(x) > 1 else x[0])
-                .collect()
-            )
-            return Choice(g)
+            # Braces always contain pipes
+            return handle_pipes(out)
 
         elif p.token in (Token.L_BRACE, Token.L_BRACKET, Token.L_PAREN):
             out.append(_parse(stream_once))
