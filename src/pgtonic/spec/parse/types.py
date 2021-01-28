@@ -39,7 +39,11 @@ class Argument(Leaf):
     """User input"""
 
     def to_regex(self, where: Dict[str, str]) -> str:
-        return where[self.content]
+        ast = where[self.content]
+
+        if len(ast) == 1:
+            return ast[0].to_regex(where={})
+        return Group(ast).to_regex(where={})
 
 
 @dataclass
@@ -169,7 +173,6 @@ def apply_whitespace(nodes: List[Base], where: Dict[str, str], is_top=False) -> 
 
     node_iter = flu([None] + nodes[:-1]).zip_longest(nodes, nodes[1:]).collect() # type: ignore
 
-
     for ix, (previous, current, next_) in enumerate(node_iter):
 
         if isinstance(current, Maybe):
@@ -190,7 +193,7 @@ def apply_whitespace(nodes: List[Base], where: Dict[str, str], is_top=False) -> 
             elif isinstance(next_, Repeat):
                 trailing_ws = True
             else:
-                trailing_ws = False
+                trailing_ws = True
 
             output.append(current.to_regex(where, trailing_ws=trailing_ws, leading_ws=leading_ws))
             continue

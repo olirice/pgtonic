@@ -31,9 +31,9 @@ class Template:
 
     def to_regex(self) -> str:
         # Recursively convert where template to where regexes
-        where_regex = {k: v.to_regex() for k, v in self.where.items()} if self.where else {}
+        where_ast = {k: v.ast for k, v in self.where.items()} if self.where else {}
         return (
-            apply_whitespace(self.ast, where_regex)
+            apply_whitespace(self.ast, where_ast)
             #+ r.OPTIONAL_WHITESPACE
             #+ r.OPTIONAL_SEMICOLON
             #+ r.END_OF_LINE
