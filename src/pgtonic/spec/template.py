@@ -5,6 +5,7 @@ from pgtonic.spec import regex as r
 from pgtonic.spec.lex.lex import lex
 from pgtonic.spec.parse.parse import _parse
 from pgtonic.spec.parse.stream_passes import filter_whitespace
+from pgtonic.spec.parse.types import apply_whitespace
 
 if TYPE_CHECKING:
     from pgtonic.spec.parse.types import Base
@@ -29,13 +30,12 @@ class Template:
 
 
     def to_regex(self) -> str:
-        from pgtonic.spec.parse.types import join_w_whitespace
         # Recursively convert where template to where regexes
         where_regex = {k: v.to_regex() for k, v in self.where.items()} if self.where else {}
         return (
-            join_w_whitespace(self.ast, where_regex)
-            + r.OPTIONAL_WHITESPACE
-            + r.OPTIONAL_SEMICOLON
+            apply_whitespace(self.ast, where_regex)
+            #+ r.OPTIONAL_WHITESPACE
+            #+ r.OPTIONAL_SEMICOLON
             #+ r.END_OF_LINE
         )
 

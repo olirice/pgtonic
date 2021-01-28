@@ -5,13 +5,13 @@
 
 # TODO: Exclude SQL keywords when unquoted. e.g. "TABLE"
 # public, perms, api_sch
-_UNQUOTED_NAME = "([A-z_][A-z0-9_]*)"
+#_UNQUOTED_NAME = "([A-z_][A-z0-9_]*)"
 # "api_V2", "sOmEaC"
-_QUOTED_NAME = '("[^"]+?")'
+#_QUOTED_NAME = '("[^"]+?")'
 
 # For making regex more readable while debugging
-#_UNQUOTED_NAME = r'\w+'
-#_QUOTED_NAME = r'[\w"]+'
+_UNQUOTED_NAME = r'\w+'
+_QUOTED_NAME = r'[\w"]+'
 
 ###################
 # Externally Used #

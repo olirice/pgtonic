@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Optional, Dict, ClassVar
+from typing import List, Optional, Dict, ClassVar, Type
 
 from pgtonic.spec import regex as r
 
@@ -77,7 +77,7 @@ class Group(Base):
     members: List[Base]
 
     def to_regex(self, where: Dict[str, str]) -> str:
-        return join_w_whitespace(self.members, where)
+        return apply_whitespace(self.members, where)
 
 
 @dataclass
@@ -89,7 +89,8 @@ class Choice(Group):
 @dataclass
 class InParens(Group):
     def to_regex(self, where: Dict[str, str]) -> str:
-        return r"\(\s*" + r"\s+".join([x.to_regex(where) for x in self.members]) + r"\s*\)"
+        # return r"\(\s*" + r"\s+".join([x.to_regex(where) for x in self.members]) + r"\s*\)"
+        return r"\(\s*" + apply_whitespace(self.members, where) + r"\s*\)"
 
 
 ##################
@@ -134,34 +135,77 @@ class RepeatNone(Repeat):
 
 @dataclass
 class Maybe(Modifier):
-    def to_regex(self, where: Dict[str, str]) -> str:
-        return "(" + self.wraps.to_regex(where) + ")" + "?"
+    def to_regex(self, where: Dict[str, str], leading_ws: bool = False, trailing_ws: bool = True) -> str:
+        return (
+                "(" 
+                + (r.WHITESPACE if leading_ws else '')
+                + self.wraps.to_regex(where)
+                + (r.WHITESPACE if trailing_ws else '')
+                + ")?"
+        )
 
 
-def resolves_to_maybe(node):
-    """Does the node unwrap to a Maybe"""
-    if isinstance(node, Maybe):
+def resolves_to(node, type_: Type):
+    """Does the node unwrap to a *type_*"""
+    if isinstance(node, type_):
         return True
     elif isinstance(node, Group):
-        return resolves_to_maybe(node.members[0])
+        return resolves_to(node.members[0], type_)
     elif isinstance(node, Modifier):
-        return resolves_to_maybe(node.wraps)
+        return resolves_to(node.wraps, type_)
     return False
 
 
-def join_w_whitespace(nodes: List[Base], where: Dict[str, str]) -> str:
+def apply_whitespace(nodes: List[Base], where: Dict[str, str], is_top=False) -> str:
     """Join nodes, respecting modifiers"""
     output = []
 
-    for ix, node in enumerate(nodes):
+    # OTHER OTHER
+    # OTHER MAYBE
+    # MA
+    # MAYBE MAYBE
 
-        # Maybes handle their own whitespace
-        if resolves_to_maybe(node):  # and not ix + 1 == len(nodes):
-            output.append(r.OPTIONAL_WHITESPACE + node.to_regex(where) + r.OPTIONAL_WHITESPACE)
-        else:
-            if ix != 0:
-                if not resolves_to_maybe(nodes[ix - 1]):
-                    output.append(r.WHITESPACE)
-            output.append(node.to_regex(where))
+    from flupy import flu
+
+    node_iter = flu([None] + nodes[:-1]).zip_longest(nodes, nodes[1:]).collect() # type: ignore
+
+
+    for ix, (previous, current, next_) in enumerate(node_iter):
+
+        if isinstance(current, Maybe):
+
+            if previous is None:
+                leading_ws = False
+            elif isinstance(previous, Maybe):
+                leading_ws = False
+            elif isinstance(previous, Repeat):
+                leading_ws = True
+            else:
+                leading_ws = False
+
+            if next_ is None:
+                trailing_ws = False
+            elif isinstance(next_, Maybe):
+                trailing_ws = True
+            elif isinstance(next_, Repeat):
+                trailing_ws = True
+            else:
+                trailing_ws = False
+
+            output.append(current.to_regex(where, trailing_ws=trailing_ws, leading_ws=leading_ws))
+            continue
+
+        elif previous is None:
+            output.append(current.to_regex(where))
+            continue
+
+        elif isinstance(previous, Maybe):
+            output.append(current.to_regex(where))
+            continue
+
+
+        
+        output.append(r.WHITESPACE)
+        output.append(current.to_regex(where))
 
     return "".join(output)
