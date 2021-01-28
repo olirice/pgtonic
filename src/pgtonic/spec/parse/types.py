@@ -1,11 +1,14 @@
 from dataclasses import dataclass
-from typing import ClassVar, Dict, List
+from typing import TYPE_CHECKING, ClassVar, Dict, List
 
 from pgtonic.spec import regex as r
 
+if TYPE_CHECKING:
+    from pgtonic.spec.template import Template
+
 
 class ToRegexMixin:
-    def to_regex(self, where: Dict[str, List["Base"]]) -> str:
+    def to_regex(self, where: Dict[str, "Template"]) -> str:
         raise NotImplementedError()
 
 
@@ -23,14 +26,14 @@ class Base(ToRegexMixin):
 class Leaf(Base):
     content: str
 
-    def to_regex(self, where: Dict[str, List[Base]]) -> str:
+    def to_regex(self, where: Dict[str, "Template"]) -> str:
         # Is abstract, should never be in AST
-        raise NotImplementedError()
+        raise NotImplementedError(self.__class__.__name__)
 
 
 @dataclass
 class Literal(Leaf):
-    def to_regex(self, where: Dict[str, List[Base]]) -> str:
+    def to_regex(self, where: Dict[str, "Template"]) -> str:
         return str(self.content)
 
 
@@ -38,36 +41,31 @@ class Literal(Leaf):
 class Argument(Leaf):
     """User input"""
 
-    def to_regex(self, where: Dict[str, List[Base]]) -> str:
-        ast = where[self.content]
-
-        if len(ast) == 1:
-            return ast[0].to_regex(where={})
-        return Group(ast).to_regex(where={})
+    def to_regex(self, where: Dict[str, "Template"]) -> str:
+        template = where[self.content]
+        return template.to_regex()
 
 
 @dataclass
 class Pipe(Leaf):
-    def to_regex(self, where: Dict[str, List[Base]]) -> str:
-        # Should never be in AST
-        raise NotImplementedError()
+    pass
 
 
 @dataclass
 class UnqualifiedName(Leaf):
-    def to_regex(self, where: Dict[str, List[Base]]) -> str:
+    def to_regex(self, where: Dict[str, "Template"]) -> str:
         return r.UNQUALIFIED_NAME
 
 
 @dataclass
 class QualifiedName(Leaf):
-    def to_regex(self, where: Dict[str, List[Base]]) -> str:
+    def to_regex(self, where: Dict[str, "Template"]) -> str:
         return r.QUALIFIED_NAME
 
 
 @dataclass
 class Name(Leaf):
-    def to_regex(self, where: Dict[str, List[Base]]) -> str:
+    def to_regex(self, where: Dict[str, "Template"]) -> str:
         return r.NAME
 
 
@@ -80,19 +78,19 @@ class Name(Leaf):
 class Group(Base):
     members: List[Base]
 
-    def to_regex(self, where: Dict[str, List[Base]]) -> str:
+    def to_regex(self, where: Dict[str, "Template"]) -> str:
         return apply_whitespace(self.members, where)
 
 
 @dataclass
 class Choice(Group):
-    def to_regex(self, where: Dict[str, List[Base]]) -> str:
+    def to_regex(self, where: Dict[str, "Template"]) -> str:
         return "(" + "|".join([x.to_regex(where) for x in self.members]) + ")"
 
 
 @dataclass
 class InParens(Group):
-    def to_regex(self, where: Dict[str, List[Base]]) -> str:
+    def to_regex(self, where: Dict[str, "Template"]) -> str:
         # return r"\(\s*" + r"\s+".join([x.to_regex(where) for x in self.members]) + r"\s*\)"
         return r"\(\s*" + apply_whitespace(self.members, where) + r"\s*\)"
 
@@ -113,7 +111,7 @@ class Repeat(Base):
 
     delimiter_regex: ClassVar[str]
 
-    def to_regex(self, where: Dict[str, List[Base]]) -> str:
+    def to_regex(self, where: Dict[str, "Template"]) -> str:
         self_reg = self.wraps.to_regex(where)
         return "(" + self_reg + r")(\s*" + self.delimiter_regex + r"\s*" + self_reg + r")*"
 
@@ -139,7 +137,7 @@ class RepeatNone(Repeat):
 
 @dataclass
 class Maybe(Modifier):
-    def to_regex(self, where: Dict[str, List[Base]], leading_ws: bool, trailing_ws: bool) -> str:  # type: ignore
+    def to_regex(self, where: Dict[str, "Template"], leading_ws: bool, trailing_ws: bool) -> str:  # type: ignore
         return (
             "("
             + (r.WHITESPACE if leading_ws else "")
@@ -149,7 +147,7 @@ class Maybe(Modifier):
         )
 
 
-def apply_whitespace(nodes: List[Base], where: Dict[str, List[Base]]) -> str:
+def apply_whitespace(nodes: List[Base], where: Dict[str, "Template"]) -> str:
     """Join nodes, respecting modifiers"""
     output = []
 

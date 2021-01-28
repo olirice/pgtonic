@@ -1,7 +1,6 @@
 from pgtonic.spec.template import Template
 
 ROLE_SPEC = Template("{ [ GROUP ] UNQUALIFIED_NAME | PUBLIC | CURRENT_USER | SESSION_USER }")
-# ROLE_SPEC = Template("{ UNQUALIFIED_NAME }")
 
 TEMPLATES = [
     Template(
