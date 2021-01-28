@@ -1,11 +1,11 @@
 from dataclasses import dataclass
-from typing import List, Optional, Dict, ClassVar, Type
+from typing import ClassVar, Dict, List
 
 from pgtonic.spec import regex as r
 
 
 class ToRegexMixin:
-    def to_regex(self, where: Dict[str, str]) -> str:
+    def to_regex(self, where: Dict[str, List["Base"]]) -> str:
         raise NotImplementedError()
 
 
@@ -23,14 +23,14 @@ class Base(ToRegexMixin):
 class Leaf(Base):
     content: str
 
-    def to_regex(self, where: Dict[str, str]) -> str:
+    def to_regex(self, where: Dict[str, List[Base]]) -> str:
         # Is abstract, should never be in AST
         raise NotImplementedError()
 
 
 @dataclass
 class Literal(Leaf):
-    def to_regex(self, where: Optional[Dict[str, str]]) -> str:
+    def to_regex(self, where: Dict[str, List[Base]]) -> str:
         return str(self.content)
 
 
@@ -38,7 +38,7 @@ class Literal(Leaf):
 class Argument(Leaf):
     """User input"""
 
-    def to_regex(self, where: Dict[str, str]) -> str:
+    def to_regex(self, where: Dict[str, List[Base]]) -> str:
         ast = where[self.content]
 
         if len(ast) == 1:
@@ -48,26 +48,26 @@ class Argument(Leaf):
 
 @dataclass
 class Pipe(Leaf):
-    def to_regex(self, where: Dict[str, str]) -> str:
+    def to_regex(self, where: Dict[str, List[Base]]) -> str:
         # Should never be in AST
         raise NotImplementedError()
 
 
 @dataclass
 class UnqualifiedName(Leaf):
-    def to_regex(self, where: Dict[str, str]) -> str:
+    def to_regex(self, where: Dict[str, List[Base]]) -> str:
         return r.UNQUALIFIED_NAME
 
 
 @dataclass
 class QualifiedName(Leaf):
-    def to_regex(self, where: Dict[str, str]) -> str:
+    def to_regex(self, where: Dict[str, List[Base]]) -> str:
         return r.QUALIFIED_NAME
 
 
 @dataclass
 class Name(Leaf):
-    def to_regex(self, where: Dict[str, str]) -> str:
+    def to_regex(self, where: Dict[str, List[Base]]) -> str:
         return r.NAME
 
 
@@ -80,19 +80,19 @@ class Name(Leaf):
 class Group(Base):
     members: List[Base]
 
-    def to_regex(self, where: Dict[str, str]) -> str:
+    def to_regex(self, where: Dict[str, List[Base]]) -> str:
         return apply_whitespace(self.members, where)
 
 
 @dataclass
 class Choice(Group):
-    def to_regex(self, where: Dict[str, str]) -> str:
+    def to_regex(self, where: Dict[str, List[Base]]) -> str:
         return "(" + "|".join([x.to_regex(where) for x in self.members]) + ")"
 
 
 @dataclass
 class InParens(Group):
-    def to_regex(self, where: Dict[str, str]) -> str:
+    def to_regex(self, where: Dict[str, List[Base]]) -> str:
         # return r"\(\s*" + r"\s+".join([x.to_regex(where) for x in self.members]) + r"\s*\)"
         return r"\(\s*" + apply_whitespace(self.members, where) + r"\s*\)"
 
@@ -113,7 +113,7 @@ class Repeat(Base):
 
     delimiter_regex: ClassVar[str]
 
-    def to_regex(self, where: Dict[str, str]) -> str:
+    def to_regex(self, where: Dict[str, List[Base]]) -> str:
         self_reg = self.wraps.to_regex(where)
         return "(" + self_reg + r")(\s*" + self.delimiter_regex + r"\s*" + self_reg + r")*"
 
@@ -139,28 +139,17 @@ class RepeatNone(Repeat):
 
 @dataclass
 class Maybe(Modifier):
-    def to_regex(self, where: Dict[str, str], leading_ws: bool = False, trailing_ws: bool = True) -> str:
+    def to_regex(self, where: Dict[str, List[Base]], leading_ws: bool, trailing_ws: bool) -> str:  # type: ignore
         return (
-                "(" 
-                + (r.WHITESPACE if leading_ws else '')
-                + self.wraps.to_regex(where)
-                + (r.WHITESPACE if trailing_ws else '')
-                + ")?"
+            "("
+            + (r.WHITESPACE if leading_ws else "")
+            + self.wraps.to_regex(where)
+            + (r.WHITESPACE if trailing_ws else "")
+            + ")?"
         )
 
 
-def resolves_to(node, type_: Type):
-    """Does the node unwrap to a *type_*"""
-    if isinstance(node, type_):
-        return True
-    elif isinstance(node, Group):
-        return resolves_to(node.members[0], type_)
-    elif isinstance(node, Modifier):
-        return resolves_to(node.wraps, type_)
-    return False
-
-
-def apply_whitespace(nodes: List[Base], where: Dict[str, str], is_top=False) -> str:
+def apply_whitespace(nodes: List[Base], where: Dict[str, List[Base]]) -> str:
     """Join nodes, respecting modifiers"""
     output = []
 
@@ -171,7 +160,7 @@ def apply_whitespace(nodes: List[Base], where: Dict[str, str], is_top=False) -> 
 
     from flupy import flu
 
-    node_iter = flu([None] + nodes[:-1]).zip_longest(nodes, nodes[1:]).collect() # type: ignore
+    node_iter = flu([None] + nodes[:-1]).zip_longest(nodes, nodes[1:]).collect()  # type: ignore
 
     for ix, (previous, current, next_) in enumerate(node_iter):
 
@@ -206,8 +195,6 @@ def apply_whitespace(nodes: List[Base], where: Dict[str, str], is_top=False) -> 
             output.append(current.to_regex(where))
             continue
 
-
-        
         output.append(r.WHITESPACE)
         output.append(current.to_regex(where))
 

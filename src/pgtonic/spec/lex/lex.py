@@ -5,25 +5,24 @@ from pgtonic.spec.lex.types import Part, Token
 from pgtonic.spec.lex.utils import build_consumer
 
 TOKEN_MAP = {
-
     # Intermediate tokens
     Token.UNQUALIFIED_NAME: build_consumer(["UNQUALIFIED_NAME"]),
     Token.QUALIFIED_NAME: build_consumer(["QUALIFIED_NAME"]),
     Token.NAME: build_consumer(["NAME"]),
-
     Token.PIPE: build_consumer(["|"]),
-    
     # Final tokens
-    Token.DELIMITED_COMMA: build_consumer([
-        "[ , ... ]",
-        "[, ... ]",
-        "[ ,... ]",
-        "[ , ...]",
-        "[,... ]",
-        "[, ...]",
-        "[,... ]",
-        "[,...]",
-    ]),
+    Token.DELIMITED_COMMA: build_consumer(
+        [
+            "[ , ... ]",
+            "[, ... ]",
+            "[ ,... ]",
+            "[ , ...]",
+            "[,... ]",
+            "[, ...]",
+            "[,... ]",
+            "[,...]",
+        ]
+    ),
     Token.DELIMITED_OR: build_consumer(["[ OR ... ]"]),
     Token.DELIMITED_NONE: build_consumer(["[ ... ]"]),
     Token.WHITESPACE: build_consumer([" ", "\n", "\t"]),

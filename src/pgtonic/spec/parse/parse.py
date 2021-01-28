@@ -1,10 +1,8 @@
-from typing import Any, Iterable, List, NoReturn, Union
+from typing import Iterable, List, Union
 
 from flupy import flu
 
-from pgtonic.spec.lex.lex import lex
 from pgtonic.spec.lex.types import Part, Token
-from pgtonic.spec.parse.stream_passes import filter_whitespace
 from pgtonic.spec.parse.types import (
     Argument,
     Base,
@@ -13,9 +11,13 @@ from pgtonic.spec.parse.types import (
     InParens,
     Literal,
     Maybe,
+    Name,
     Pipe,
-    RepeatComma, RepeatOr, RepeatNone,
-    Name, QualifiedName, UnqualifiedName
+    QualifiedName,
+    RepeatComma,
+    RepeatNone,
+    RepeatOr,
+    UnqualifiedName,
 )
 
 
