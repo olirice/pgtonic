@@ -5,11 +5,29 @@ from pgtonic.spec.lex.types import Part, Token
 from pgtonic.spec.lex.utils import build_consumer
 
 TOKEN_MAP = {
-    # TODO: Do these variants mean different things?
-    Token.REPEATING_OPTIONAL: build_consumer(["[, ...]"]),
-    Token.REPEATING_REQUIRED: build_consumer(["[,...]"]),
+
+    # Intermediate tokens
+    Token.UNQUALIFIED_NAME: build_consumer(["UNQUALIFIED_NAME"]),
+    Token.QUALIFIED_NAME: build_consumer(["QUALIFIED_NAME"]),
+    Token.NAME: build_consumer(["NAME"]),
+
+    Token.PIPE: build_consumer(["|"]),
+    
+    # Final tokens
+    Token.DELIMITED_COMMA: build_consumer([
+        "[ , ... ]",
+        "[, ... ]",
+        "[ ,... ]",
+        "[ , ...]",
+        "[,... ]",
+        "[, ...]",
+        "[,... ]",
+        "[,...]",
+    ]),
+    Token.DELIMITED_OR: build_consumer(["[ OR ... ]"]),
+    Token.DELIMITED_NONE: build_consumer(["[ ... ]"]),
     Token.WHITESPACE: build_consumer([" ", "\n", "\t"]),
-    Token.LITERAL: build_consumer(list("ABCDEFGHIJKLMNOPQRSTUVWXYZ")),
+    Token.LITERAL: build_consumer(list("_ABCDEFGHIJKLMNOPQRSTUVWXYZ")),
     Token.STAR: build_consumer(list("*")),
     Token.ARG: build_consumer(list("_abcdefghijklmnopqrstuvwxyz")),
     Token.L_PAREN: build_consumer(["("]),
@@ -18,7 +36,7 @@ TOKEN_MAP = {
     Token.R_BRACKET: build_consumer(["]"]),
     Token.L_BRACE: build_consumer(["{"]),
     Token.R_BRACE: build_consumer(["}"]),
-    Token.PIPE: build_consumer(["|"]),
+    Token.COMMA: build_consumer([","]),
 }
 
 

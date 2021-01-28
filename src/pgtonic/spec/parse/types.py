@@ -1,41 +1,17 @@
 from dataclasses import dataclass
-from typing import List
+from typing import List, Optional, Dict, ClassVar
 
 from pgtonic.spec import regex as r
 
 
 class ToRegexMixin:
-    def to_regex(self) -> str:
+    def to_regex(self, where: Dict[str, str]) -> str:
         raise NotImplementedError()
 
 
 @dataclass
 class Base(ToRegexMixin):
     pass
-
-
-@dataclass
-class Spec(ToRegexMixin):
-    """Represents a postgres specification template
-
-    e.g.
-
-        CREATE [ OR REPLACE ] [ TEMP | TEMPORARY ] VIEW name [ ( column_name [, ...] ) ]
-        [ WITH ( view_option_name [= view_option_value] [, ... ] ) ]
-        AS query
-
-    """
-
-    ast: List[Base]
-
-    def to_regex(self) -> str:
-        return (
-            join_w_whitespace(self.ast)
-            + r.OPTIONAL_WHITESPACE
-            + r.OPTIONAL_SEMICOLON
-            + r.OPTIONAL_WHITESPACE
-            + r.END_OF_LINE
-        )
 
 
 ##############
@@ -47,14 +23,14 @@ class Spec(ToRegexMixin):
 class Leaf(Base):
     content: str
 
-    def to_regex(self) -> str:
+    def to_regex(self, where: Dict[str, str]) -> str:
         # Is abstract, should never be in AST
         raise NotImplementedError()
 
 
 @dataclass
 class Literal(Leaf):
-    def to_regex(self) -> str:
+    def to_regex(self, where: Optional[Dict[str, str]]) -> str:
         return str(self.content)
 
 
@@ -62,41 +38,33 @@ class Literal(Leaf):
 class Argument(Leaf):
     """User input"""
 
-    def to_regex(self) -> str:
-        if self.content in ("table_name", "function_name", "sequence_name"):
-            return r.NAME
-        elif self.content in ("schema_name", "table_namespace", "tablespace_name"):
-            return r.SCHEMA_NAME
-        elif self.content in (
-            "column",
-            "role_name",
-            "database_name",
-            "fdw_name",
-            "server_name",
-            "arg_name",
-            "lang_name",
-        ):
-            return r.ENTITY_NAME
-        elif self.content == "arg_type":
-            return ".+"
-        elif self.content == "argmode":
-            # https://www.postgresql.org/docs/13/sql-createfunction.html
-            return "IN|OUT|INOUT"
-        elif self.content == "loid":
-            # large object id
-            return r"\d+"
-        elif self.content == "role_specification":
-            # https://www.postgresql.org/docs/13/sql-grant.html
-            return f"PUBLIC|CURRENT_USER|SESSION_USER|(GROUP{r.OPTIONAL_WHITESPACE})?{r.ENTITY_NAME}"
-        else:
-            raise Exception(f"unknown arg name {self.content}")
+    def to_regex(self, where: Dict[str, str]) -> str:
+        return where[self.content]
 
 
 @dataclass
 class Pipe(Leaf):
-    def to_regex(self) -> str:
+    def to_regex(self, where: Dict[str, str]) -> str:
         # Should never be in AST
         raise NotImplementedError()
+
+
+@dataclass
+class UnqualifiedName(Leaf):
+    def to_regex(self, where: Dict[str, str]) -> str:
+        return r.UNQUALIFIED_NAME
+
+
+@dataclass
+class QualifiedName(Leaf):
+    def to_regex(self, where: Dict[str, str]) -> str:
+        return r.QUALIFIED_NAME
+
+
+@dataclass
+class Name(Leaf):
+    def to_regex(self, where: Dict[str, str]) -> str:
+        return r.NAME
 
 
 ###################
@@ -108,20 +76,20 @@ class Pipe(Leaf):
 class Group(Base):
     members: List[Base]
 
-    def to_regex(self) -> str:
-        return join_w_whitespace(self.members)
+    def to_regex(self, where: Dict[str, str]) -> str:
+        return join_w_whitespace(self.members, where)
 
 
 @dataclass
 class Choice(Group):
-    def to_regex(self) -> str:
-        return "(" + "|".join([x.to_regex() for x in self.members]) + ")"
+    def to_regex(self, where: Dict[str, str]) -> str:
+        return "(" + "|".join([x.to_regex(where) for x in self.members]) + ")"
 
 
 @dataclass
 class InParens(Group):
-    def to_regex(self) -> str:
-        return r"\(\s*" + r"\s+".join([x.to_regex() for x in self.members]) + r"\s*\)"
+    def to_regex(self, where: Dict[str, str]) -> str:
+        return r"\(\s*" + r"\s+".join([x.to_regex(where) for x in self.members]) + r"\s*\)"
 
 
 ##################
@@ -135,24 +103,65 @@ class Modifier(Base):
 
 
 @dataclass
-class Repeat(Modifier):
+class Repeat(Base):
+    wraps: Base
+
+    delimiter_regex: ClassVar[str]
+
+    def to_regex(self, where: Dict[str, str]) -> str:
+        self_reg = self.wraps.to_regex(where)
+        return "(" + self_reg + r")(\s*" + self.delimiter_regex + r"\s*" + self_reg + r")*"
+
+
+@dataclass
+class RepeatComma(Repeat):
     """Comma separated"""
 
-    def to_regex(self) -> str:
-        return "(" + str(self.wraps.to_regex()) + r")\s*(\s*,\s*(" + str(self.wraps.to_regex()) + ")+)*"
+    delimiter_regex = ","
+
+
+class RepeatOr(Repeat):
+    """OR separated"""
+
+    delimiter_regex = "OR"
+
+
+class RepeatNone(Repeat):
+    """Whitespace separated"""
+
+    delimiter_regex = r"\w+"
 
 
 @dataclass
 class Maybe(Modifier):
-    def to_regex(self) -> str:
-        return "(" + self.wraps.to_regex() + r"\s*)" + "?"
+    def to_regex(self, where: Dict[str, str]) -> str:
+        return "(" + self.wraps.to_regex(where) + ")" + "?"
 
 
-def join_w_whitespace(nodes: List[Base]) -> str:
+def resolves_to_maybe(node):
+    """Does the node unwrap to a Maybe"""
+    if isinstance(node, Maybe):
+        return True
+    elif isinstance(node, Group):
+        return resolves_to_maybe(node.members[0])
+    elif isinstance(node, Modifier):
+        return resolves_to_maybe(node.wraps)
+    return False
+
+
+def join_w_whitespace(nodes: List[Base], where: Dict[str, str]) -> str:
+    """Join nodes, respecting modifiers"""
     output = []
 
     for ix, node in enumerate(nodes):
-        output.append(node.to_regex())
-        if not isinstance(node, Maybe) and not ix + 1 == len(nodes):
-            output.append(r.WHITESPACE)
+
+        # Maybes handle their own whitespace
+        if resolves_to_maybe(node):  # and not ix + 1 == len(nodes):
+            output.append(r.OPTIONAL_WHITESPACE + node.to_regex(where) + r.OPTIONAL_WHITESPACE)
+        else:
+            if ix != 0:
+                if not resolves_to_maybe(nodes[ix - 1]):
+                    output.append(r.WHITESPACE)
+            output.append(node.to_regex(where))
+
     return "".join(output)

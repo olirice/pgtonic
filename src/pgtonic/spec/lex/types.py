@@ -6,10 +6,9 @@ class Token(str, Enum):
     LITERAL = "LITERAL"
     ARG = "ARG"
     WHITESPACE = "WHITESPACE"
-    # The clause is repeatable, but most appear at least once
-    REPEATING_REQUIRED = "REPEATING_REQUIRED"
-    # The clause is repeatable, but not required
-    REPEATING_OPTIONAL = "REPEATING_OPTIONAL"
+    DELIMITED_OR = "DELIMITED_OR"
+    DELIMITED_COMMA = "DELIMITED_COMMA"
+    DELIMITED_NONE = "DELIMITED_NONE"
     L_PAREN = "L_PAREN"
     R_PAREN = "R_PAREN"
     L_BRACKET = "L_BRACKET"
@@ -18,6 +17,13 @@ class Token(str, Enum):
     R_BRACE = "R_BRACE"
     PIPE = "PIPE"
     STAR = "STAR"
+    COMMA = "COMMA"
+    # mytable
+    UNQUALIFIED_NAME = "UNQUALIFIED_NAME"
+    # public.mytable
+    QUALIFIED_NAME = "QUALIFIED_NAME"
+    # qualified or unqualified
+    NAME = "NAME"
 
     def __str__(self) -> str:
         return str.__str__(self)

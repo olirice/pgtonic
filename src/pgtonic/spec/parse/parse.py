@@ -14,23 +14,9 @@ from pgtonic.spec.parse.types import (
     Literal,
     Maybe,
     Pipe,
-    Repeat,
-    Spec,
+    RepeatComma, RepeatOr, RepeatNone,
+    Name, QualifiedName, UnqualifiedName
 )
-
-
-def assert_never(x: Any) -> NoReturn:
-    """Enable mypy to detect unhandle Enum case in a if/elif/else
-    https://github.com/python/mypy/issues/6366
-    """
-    assert False, "Unhandled type: {}".format(type(x).__name__)
-
-
-def parse(text: str) -> Spec:
-    """Parse a statement into an Statement AST"""
-    stream = lex(text)
-    stream = filter_whitespace(stream)
-    return Spec(_parse(stream))  # type: ignore
 
 
 def _parse(stream: Iterable[Part]) -> Union[List, Base]:  # type: ignore
@@ -66,11 +52,14 @@ def _parse(stream: Iterable[Part]) -> Union[List, Base]:  # type: ignore
         elif p.token == Token.ARG:
             out.append(Argument(p.text))
 
-        elif p.token == Token.REPEATING_REQUIRED:
-            out[-1] = Repeat(out[-1])
+        elif p.token == Token.DELIMITED_COMMA:
+            out[-1] = RepeatComma(out[-1])
 
-        elif p.token == Token.REPEATING_OPTIONAL:
-            out[-1] = Maybe(Repeat(out[-1]))
+        elif p.token == Token.DELIMITED_OR:
+            out[-1] = RepeatOr(out[-1])
+
+        elif p.token == Token.DELIMITED_NONE:
+            out[-1] = RepeatNone(out[-1])
 
         elif p.token in (Token.LITERAL, Token.STAR):
             out.append(Literal(p.text))
@@ -78,7 +67,16 @@ def _parse(stream: Iterable[Part]) -> Union[List, Base]:  # type: ignore
         elif p.token == Token.PIPE:
             out.append(Pipe(p.text))
 
+        elif p.token == Token.NAME:
+            out.append(Name(p.text))
+
+        elif p.token == Token.QUALIFIED_NAME:
+            out.append(QualifiedName(p.text))
+
+        elif p.token == Token.UNQUALIFIED_NAME:
+            out.append(UnqualifiedName(p.text))
+
         else:
-            assert_never(p.token)
+            assert "Unhandled Token: {}".format(p.token)
 
     return out

@@ -4,24 +4,33 @@ from typing import List
 import pytest
 
 from pgtonic.pg13.grant import TEMPLATES
-from pgtonic.spec.parse.parse import parse
 
-REGEXES: List[str] = [parse(x.spec).to_regex() for x in TEMPLATES]
+REGEXES: List[str] = [x.to_regex() for x in TEMPLATES]
 
 
 @pytest.mark.parametrize(
     "sql,is_match",
     [
+        ("GRANT UPDATE ON TABLE public.account TO oliver", True),
+        ("GRANT UPDATE ON TABLE public.account TO GROUP oliver", True),
+        ("GRANT UPDATE ON TABLE public.account TO CURRENT_USER", True),
         ("GRANT UPDATE ON TABLE public.account TO oliver;", True),
-        ("GRANT UPDATE ON public.account TO oliver WITH GRANT OPTION", True),
+        ("GRANT SELECT ON TABLE public.account, book TO oliver;", True),
+        ("GRANT SELECT ON TABLE public.account, book, author TO oliver, anon;", True),
+        ("GRANT SELECT ON ALL TABLES IN SCHEMA api, public TO oliver, anon;", True),
+        ("GRANT SELECT ON ALL TABLES IN SCHEMA api TO oliver, anon WITH GRANT OPTION", True),
+        ("GRANT ALL ON ALL TABLES IN SCHEMA api, other TO oliver, anon", True),
+        ("GRANT REFERENCES ON public.account TO oliver WITH GRANT OPTION", True),
+        ("GRANT TRIGGER ON public.account TO oliver, anon WITH GRANT OPTION", True),
         ("GRANT UPDATE ON TABLE public.account TO oliver WITH", False),
-        ("GRANT UPDATE (full_name) ON account TO GROUP oliver_u", True),
-        ("GRANT ALL PRIVILEGES ON SEQUENCE xyz.account_seq TO PUBLIC, GROUP anon_user", True),
-        ("GRANT TEMP,CONNECT, CREATE ON DATABASE tonicdb TO oli WITH GRANT OPTION", True),
-        ("GRANT ALL ON FOREIGN DATA WRAPPER my_fdw TO PUBLIC;", True),
-        ('GRANT USAGE ON FOREIGN SERVER my_server, my_other_server TO "ec$ho_rw";', True),
-        ("GRANT EXECUTE ON FUNCTION api_v2.to_upper () TO oliver", True),
-        ("GRANT EXECUTE ON FUNCTION api_v2.to_upper ( text ) TO oliver", True),
+        ("GRANT UPDATE ON TABLE account TABLE other TO oliver WITH", False),
+        ("GRANT UPDATE ON TABLE TO oliver WITH", False),
+        ("GRANT UPDATE ON TABLE account TO", False),
+        ("GRANT UPDATE ON TABLE account TO ", False),
+        ("GRANT UPDATEON TABLE account TO oliver", False),
+        ("GRANT UPDATE ON accountTO oliver;", False),
+        ("GRANT UPDATE ALL ON account TO oliver;", False),
+        ("GRANT UPDATE ALL ON account TO oliver;", False),
     ],
 )
 def test_pg13_grant(sql: str, is_match: bool) -> None:
