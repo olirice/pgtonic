@@ -14,6 +14,7 @@ CREATE [ CONSTRAINT ] TRIGGER name { BEFORE | AFTER | INSTEAD OF } { event [ OR 
     [ WHEN ( condition ) ]
     EXECUTE { FUNCTION | PROCEDURE } function_name ( arguments )
     """,
+    # TODO remove requirement that option groups are surrounded by { }, allow [ ] as well.
         corrected="""
 CREATE [ CONSTRAINT ] TRIGGER name { BEFORE | AFTER | INSTEAD OF } { event [ OR ... ] }
     ON table_name
