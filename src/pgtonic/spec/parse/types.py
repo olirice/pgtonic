@@ -47,6 +47,8 @@ class Argument(Leaf):
 
     def to_regex(self, where: Dict[str, "Template"]) -> str:
         template = where[self.content]
+        # TODO: Add a named capture group
+        #return f'(?:<{self.content}>' + template.to_regex() + ')'
         return template.to_regex()
 
 
