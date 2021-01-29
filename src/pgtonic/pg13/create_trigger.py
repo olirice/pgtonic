@@ -30,7 +30,7 @@ CREATE [ CONSTRAINT ] TRIGGER name { BEFORE | AFTER | INSTEAD OF } { event [ OR 
             "function_name": Template("{ NAME }"),
             # TODO
             # An optional comma-separated list of arguments to be provided to the function when the trigger is executed. The arguments are literal string constants. Simple names and numeric constants can be written here, too, but they will all be converted to strings. Please check the description of the implementation language of the trigger function to find out how these arguments can be accessed within the function; it might be different from normal function arguments.
-            "arguments": Template("{ UNQUALIFIED_NAME [, ...] }"),
+            "arguments": Template("[ UNQUALIFIED_NAME [, ...] ]"),
         },
     )
 ]

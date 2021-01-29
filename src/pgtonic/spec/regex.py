@@ -10,8 +10,8 @@ _UNQUOTED_NAME = "([A-z_][A-z0-9_]*)"
 _QUOTED_NAME = '("[^"]+?")'
 
 # For making regex more readable while debugging
-#_UNQUOTED_NAME = r"\w+"
-#_QUOTED_NAME = r'[\w"]+'
+# _UNQUOTED_NAME = r"\w+"
+# _QUOTED_NAME = r'[\w"]+'
 
 ###################
 # Externally Used #

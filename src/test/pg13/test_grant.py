@@ -1,11 +1,6 @@
-import re
-from typing import List
-
 import pytest
 
 from pgtonic.pg13.grant import TEMPLATES
-
-REGEXES: List[str] = [x.to_regex() for x in TEMPLATES]
 
 
 @pytest.mark.parametrize(
@@ -34,4 +29,4 @@ REGEXES: List[str] = [x.to_regex() for x in TEMPLATES]
     ],
 )
 def test_pg13_grant(sql: str, is_match: bool) -> None:
-    assert any([re.match("^" + regex + "$", sql) for regex in REGEXES]) == is_match
+    assert any([x.is_match(sql) for x in TEMPLATES]) == is_match

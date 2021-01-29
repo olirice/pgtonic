@@ -21,8 +21,10 @@ class Base(ToRegexMixin):
 # Leaf Nodes #
 ##############
 
+
 def w(add_whitespace: bool) -> str:
-    return (r.WHITESPACE if add_whitespace else '')
+    return r.WHITESPACE if add_whitespace else ""
+
 
 @dataclass
 class Leaf(Base):
@@ -36,7 +38,7 @@ class Leaf(Base):
 @dataclass
 class Literal(Leaf):
     def to_regex(self, where: Dict[str, "Template"]) -> str:
-        return  str(self.content)
+        return str(self.content)
 
 
 @dataclass
@@ -51,6 +53,12 @@ class Argument(Leaf):
 @dataclass
 class Pipe(Leaf):
     pass
+
+
+@dataclass
+class Nothing(Leaf):
+    def to_regex(self, where: Dict[str, "Template"]) -> str:
+        return "()"
 
 
 @dataclass
@@ -81,9 +89,17 @@ class Group(Base):
     members: List[Base]
 
     def to_regex(self, where: Dict[str, "Template"]) -> str:
-        result = '('
-        result += r.WHITESPACE.join([x.to_regex(where) for x in self.members])
-        result += ')'
+        result = "("
+        # TODO: Optional whitespace befoer InParens
+        for ix, x in enumerate(self.members):
+            if ix == 0:
+                result += x.to_regex(where)
+            elif isinstance(x, InParens):
+                result += r.OPTIONAL_WHITESPACE + x.to_regex(where)
+            else:
+                result += r.WHITESPACE + x.to_regex(where)
+
+        result += ")"
         return result
 
 
@@ -91,7 +107,7 @@ class Group(Base):
 class Choice(Group):
     def to_regex(self, where: Dict[str, "Template"]) -> str:
         result = "("
-        result += '|'.join([x.to_regex(where) for x in self.members])
+        result += "|".join([x.to_regex(where) for x in self.members])
         result += ")"
         return result
 
@@ -116,7 +132,7 @@ class Modifier(Base):
 
 
 @dataclass
-class Repeat(Base):
+class Repeat(Modifier):
     wraps: Base
 
     delimiter_regex: ClassVar[str]
@@ -124,30 +140,26 @@ class Repeat(Base):
     def to_regex(self, where: Dict[str, "Template"]) -> str:
         self_reg = self.wraps.to_regex(where)
         result = "(" + self_reg + ")"
-        result += (
-                "("
-                + r.OPTIONAL_WHITESPACE
-                + self.delimiter_regex
-                + r.OPTIONAL_WHITESPACE
-                + self_reg
-                + ")*"
-        )
+        result += "(" + r.OPTIONAL_WHITESPACE + self.delimiter_regex + r.OPTIONAL_WHITESPACE + self_reg + ")*"
         return result
 
 
 @dataclass
 class RepeatComma(Repeat):
     """Comma separated"""
+
     delimiter_regex = ","
 
 
 class RepeatOr(Repeat):
     """OR separated"""
+
     delimiter_regex = "OR"
 
 
 class RepeatNone(Repeat):
     """Whitespace separated"""
+
     delimiter_regex = r"\w+"
 
 

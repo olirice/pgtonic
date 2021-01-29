@@ -1,8 +1,11 @@
+from functools import lru_cache
 from typing import Iterable, List, Union
 
 from flupy import flu
 
+from pgtonic.spec.lex.lex import lex
 from pgtonic.spec.lex.types import Part, Token
+from pgtonic.spec.parse.stream_passes import filter_whitespace
 from pgtonic.spec.parse.types import (
     Argument,
     Base,
@@ -19,6 +22,17 @@ from pgtonic.spec.parse.types import (
     RepeatOr,
     UnqualifiedName,
 )
+
+
+@lru_cache()
+def parse(sql: str) -> Base:
+    tstream0 = lex(sql)
+    tstream1 = filter_whitespace(tstream0)
+    nodes = _parse(tstream1)  # type: ignore
+
+    if isinstance(nodes, list):
+        return Group(nodes)
+    return nodes
 
 
 def handle_pipes(x):

@@ -1,4 +1,5 @@
 from typing import List
+
 from pgtonic.spec.parse.types import *
 
 
@@ -21,7 +22,7 @@ def maybe_to_choice(node: Base):
         n_variants = 2 ** n_maybes
         t = f"0:0{n_maybes}b"
 
-        variants: List[Group] = []
+        variants: List[Base] = []
 
         for variant_ix in range(n_variants):
             mask: List[bool] = [x == "1" for x in ("{" + t + "}").format(variant_ix)]
@@ -29,19 +30,24 @@ def maybe_to_choice(node: Base):
             variant = []
             mask_ix = 0
             for subnode in node.members:
+
                 if isinstance(subnode, Maybe):
+                    # if isinstance(subnode.wraps, Literal) and subnode.wraps.content=='AS':
+                    #    import pdb; pdb.set_trace()
                     if mask[mask_ix]:
                         variant.append(maybe_to_choice(subnode.wraps))
-                    mask_ix +=1
+                    mask_ix += 1
                     continue
                 else:
                     variant.append(maybe_to_choice(subnode))
 
             if len(variant) == 0:
-                raise Exception('Empty variant')
+                variants.append(Nothing(""))
             else:
                 variants.append(class_(variant))
 
         return Choice(variants)
 
+    if not isinstance(node, Leaf):
+        raise Exception(node)
     return node
