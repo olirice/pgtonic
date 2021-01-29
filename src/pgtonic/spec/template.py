@@ -6,10 +6,10 @@ from typing import TYPE_CHECKING, Dict, List, Optional
 from pgtonic.spec.lex.lex import lex
 from pgtonic.spec.parse.parse import _parse
 from pgtonic.spec.parse.stream_passes import filter_whitespace
-from pgtonic.spec.parse.types import apply_whitespace
-
+from pgtonic.spec.parse.types import Base, Group
+from pgtonic.spec.parse.ast_passes import maybe_to_choice
 if TYPE_CHECKING:
-    from pgtonic.spec.parse.types import Base
+    from pgtonic.spec.parse.types import Base, Group
 
 
 @dataclass
@@ -24,11 +24,20 @@ class Template:
         return self.corrected or self.original
 
     @property
-    def ast(self) -> List["Base"]:
+    def ast(self) -> "Base":
         tstream0 = lex(self.spec)
         tstream1 = filter_whitespace(tstream0)
-        return _parse(tstream1)  # type: ignore
+        nodes =_parse(tstream1)  # type: ignore
+        
+
+        if isinstance(nodes, list):
+            return Group(nodes)
+        return nodes
+
+    @property
+    def ast_simple(self) -> "Base":
+        ast = self.ast
+        return maybe_to_choice(ast)
 
     def to_regex(self) -> str:
-        # Recursively convert where template to ast
-        return apply_whitespace(self.ast, self.where or {})
+        return self.ast_simple.to_regex(self.where or {})
